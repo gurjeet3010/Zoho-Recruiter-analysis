@@ -1,0 +1,2 @@
+# Standard library imports only (urllib, http.server, json, os, threading)
+# No external package requirements needed.

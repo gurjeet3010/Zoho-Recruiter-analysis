@@ -1,0 +1,18 @@
+# Credentials & Local Configuration
+.env
+.config.json
+*.db
+*.sqlite3
+
+# Python caching & environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini

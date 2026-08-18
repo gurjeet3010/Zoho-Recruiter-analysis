@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TalentPulse - Executive Recruitment Command Center</title>
+  <meta name="description"
+    content="Real-time executive recruitment command center to monitor active job openings, applicant sourcing channels, pipeline conversion funnels, and recruiter tasks.">
+
+  <!-- Inter & Outfit Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Tailwind CSS is avoided per guidelines (Vanilla CSS used in style.css) -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Chart.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+  <div class="app-container">
+
+    <!-- Sidebar / Navigation -->
+    <aside class="sidebar">
+      <div class="logo-area">
+        <div class="logo-icon"><i class="fa-solid fa-bolt"></i></div>
+        <div class="logo-text">
+          <h2>TalentPulse</h2>
+          <span>Hiring Command</span>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="active"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+        <a href="#pipeline-section"><i class="fa-solid fa-filter"></i> Aggregate Funnel</a>
+        <a href="#jobs-section"><i class="fa-solid fa-briefcase"></i> Active Openings</a>
+      </nav>
+    </aside>
+
+    <!-- Main Dashboard Workspace -->
+    <main class="main-content">
+
+      <!-- Top Header -->
+      <header class="header">
+        <div class="header-title">
+          <h1>Recruitment Command Center</h1>
+          <p class="subtitle">Real-time status of all active corporate job openings, candidate conversion funnels, and recruiter tasks.</p>
+        </div>
+        <div class="header-actions">
+          <span class="last-updated"><i class="fa-solid fa-rotate"></i> Updated 2 mins ago</span>
+          <button id="auth-btn" class="btn btn-secondary" style="display: none;"><i class="fa-solid fa-link"></i>
+            Connect Zoho Recruit</button>
+          <button id="refresh-btn" class="btn btn-secondary"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+        </div>
+      </header>
+
+      <!-- Connection Status Alert Banner -->
+      <div id="connection-banner" class="status-banner" style="display: none;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-circle-info"></i>
+          <span id="banner-text">Loading connectivity status...</span>
+        </div>
+        <button id="banner-auth-btn" class="btn btn-secondary"
+          style="display: none; padding: 6px 12px; font-size: 11px;"><i class="fa-solid fa-plug"></i> Connect Live Zoho
+          Account</button>
+      </div>
+
+      <!-- Org Overview Section -->
+      <section class="org-overview-section">
+        <div class="kpi-grid">
+          <!-- Card 1: Active Jobs -->
+          <div class="kpi-card-new" id="kpi-active-jobs">
+            <div class="kpi-card-left">
+              <div class="kpi-value-new" id="val-active-jobs">--</div>
+              <div class="kpi-label-new">Active Jobs</div>
+            </div>
+            <div class="kpi-card-right">
+              <div class="kpi-icon-box bg-yellow-light text-yellow-icon"><i class="fa-solid fa-briefcase"></i></div>
+            </div>
+          </div>
+
+          <!-- Card 2: Applicants -->
+          <div class="kpi-card-new" id="kpi-applicants">
+            <div class="kpi-card-left">
+              <div class="kpi-value-new" id="val-applicants">--</div>
+              <div class="kpi-label-new">Applicants</div>
+            </div>
+            <div class="kpi-card-right">
+              <div class="kpi-icon-box bg-blue-light text-blue-icon"><i class="fa-solid fa-user"></i></div>
+            </div>
+          </div>
+
+          <!-- Card 3: Interviews -->
+          <div class="kpi-card-new" id="kpi-interviews">
+            <div class="kpi-card-left">
+              <div class="kpi-value-new" id="val-interviews-total">--</div>
+              <div class="kpi-label-new">Interviews</div>
+              <div class="kpi-sub-stats">
+                <span class="stat-item green-text"><i class="fa-solid fa-check"></i> <span
+                    id="val-interviews-completed">--</span></span>
+                <span class="stat-item red-text"><i class="fa-solid fa-xmark"></i> <span
+                    id="val-interviews-cancelled">--</span></span>
+                <span class="stat-item grey-text"><i class="fa-solid fa-hourglass-half"></i> <span
+                    id="val-interviews-pending">--</span></span>
+              </div>
+            </div>
+            <div class="kpi-card-right">
+              <div class="kpi-icon-box bg-coral-light text-coral-icon"><i class="fa-solid fa-users"></i></div>
+            </div>
+          </div>
+
+          <!-- Card 4: Submissions -->
+          <div class="kpi-card-new" id="kpi-submissions">
+            <div class="kpi-card-left">
+              <div class="kpi-value-new" id="val-submissions">--</div>
+              <div class="kpi-label-new">Submissions</div>
+            </div>
+            <div class="kpi-card-right">
+              <div class="kpi-icon-box bg-orange-light text-orange-icon"><i class="fa-solid fa-file-invoice"></i></div>
+            </div>
+          </div>
+
+          <!-- Card 5: Offers -->
+          <div class="kpi-card-new" id="kpi-offers">
+            <div class="kpi-card-left">
+              <div class="kpi-value-new" id="val-offers-total">--</div>
+              <div class="kpi-label-new">Offers</div>
+              <div class="kpi-sub-stats">
+                <span class="stat-item green-text"><i class="fa-solid fa-check"></i> <span
+                    id="val-offers-accepted">--</span></span>
+                <span class="stat-item red-text"><i class="fa-solid fa-xmark"></i> <span
+                    id="val-offers-declined">--</span></span>
+                <span class="stat-item grey-text"><i class="fa-solid fa-hourglass-half"></i> <span
+                    id="val-offers-pending">--</span></span>
+              </div>
+            </div>
+            <div class="kpi-card-right">
+              <div class="kpi-icon-box bg-blue-icon-light text-blue-icon-color"><i
+                  class="fa-solid fa-file-signature"></i></div>
+            </div>
+          </div>
+
+          <!-- Card 6: Hires -->
+          <div class="kpi-card-new" id="kpi-hires">
+            <div class="kpi-card-left">
+              <div class="kpi-value-new" id="val-hires">--</div>
+              <div class="kpi-label-new">Hires</div>
+            </div>
+            <div class="kpi-card-right">
+              <div class="kpi-icon-box bg-green-light text-green-icon"><i class="fa-solid fa-thumbs-up"></i></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Middle Section: Visual Aggregate Pipeline and Sourcing -->
+      <section class="visuals-grid" id="pipeline-section">
+        <!-- Pipeline Funnel Chart Card -->
+        <div class="visual-card flex-2">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-filter"></i> Aggregate Hiring Funnel</h3>
+            <span class="card-sub">Total candidates at each stage and drop-off rate</span>
+          </div>
+          <div class="card-content chart-container">
+            <canvas id="pipelineChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Sourcing Channels Chart Card -->
+        <div class="visual-card flex-1">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-circle-nodes"></i> Application Channels</h3>
+            <span class="card-sub">Candidate distribution by source</span>
+          </div>
+          <div class="card-content chart-container">
+            <canvas id="sourceChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Filters & Control Board -->
+      <section class="filters-card">
+        <div class="filters-wrapper">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="search-input" placeholder="Search by Job, Company, Recruiter...">
+          </div>
+          <div class="filter-controls">
+            <div class="filter-group">
+              <label for="company-filter">Company</label>
+              <select id="company-filter">
+                <option value="all">All Companies</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="status-filter">Status</label>
+              <select id="status-filter">
+                <option value="all">All Statuses</option>
+                <option value="On Track">On Track</option>
+                <option value="Delayed">Delayed</option>
+              </select>
+            </div>
+            <button id="clear-filters-btn" class="btn-clear" title="Clear Filters">
+              <i class="fa-solid fa-filter-circle-xmark"></i> Clear
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Table Section: Job Openings List -->
+      <section class="jobs-section" id="jobs-section">
+        <div class="section-header">
+          <h2><i class="fa-solid fa-list-check"></i> Active Job Openings Details</h2>
+          <span class="badge badge-info" id="jobs-shown-count">6 openings shown</span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="jobs-table" id="jobs-table">
+            <thead>
+              <tr>
+                <th class="sortable" data-sort="jobTitle">Job Title & Company <i class="fa-solid fa-sort"></i></th>
+                <th class="sortable" data-sort="totalPositions">Positions <i class="fa-solid fa-sort"></i></th>
+                <th class="sortable" data-sort="targetHireDate">Target Date <i class="fa-solid fa-sort"></i></th>
+                <th class="sortable" data-sort="daysOpen">Days Open <i class="fa-solid fa-sort"></i></th>
+                <th>Sources Split</th>
+                <th>Hiring Pipeline Stage Counts</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="jobs-table-body">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+
+    </main>
+  </div>
+
+  <!-- Job Details Interactive Modal -->
+  <div class="modal" id="job-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-header-text">
+          <span class="modal-job-id" id="modal-job-id">JOB-001</span>
+          <h2 id="modal-job-title">Senior Software Engineer</h2>
+          <p id="modal-company-name">Acme Corp</p>
+        </div>
+        <button class="modal-close" id="modal-close-btn">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-cols">
+          <!-- Col 1: Details & Source Breakdown -->
+          <div class="modal-col flex-1">
+            <div class="details-section">
+              <h4 class="section-title">Role Parameters</h4>
+              <div class="details-grid">
+                <div class="detail-item">
+                  <span class="detail-lbl">Department</span>
+                  <span class="detail-val" id="modal-dept">Engineering</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-lbl">Total Positions</span>
+                  <span class="detail-val" id="modal-positions">3</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-lbl">Target Hire Date</span>
+                  <span class="detail-val" id="modal-target-date">2026-07-20</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-lbl">Days Open</span>
+                  <span class="detail-val" id="modal-days-open">18 days</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-lbl">Status</span>
+                  <span class="detail-val" id="modal-status-badge">On Track</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-lbl">Assigned Recruiter</span>
+                  <span class="detail-val" id="modal-recruiter">Sarah Jenkins</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-source-card">
+              <h4 class="section-title">Applicant Sourcing Channels</h4>
+              <div class="source-chart-container">
+                <canvas id="modalSourceChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Col 2: Pipeline Visualizer -->
+          <div class="modal-col flex-1">
+            <h4 class="section-title">Hiring Pipeline Funnel</h4>
+
+            <div class="modal-pipeline-funnel">
+              <!-- Stage: Applied -->
+              <div class="funnel-stage" id="funnel-stage-applied">
+                <div class="stage-info">
+                  <span class="stage-name">Applied</span>
+                  <span class="stage-count" id="m-stage-applied">130</span>
+                </div>
+                <div class="stage-progress">
+                  <div class="stage-bar" style="width: 100%;"></div>
+                </div>
+              </div>
+
+              <!-- Stage: Screening -->
+              <div class="funnel-stage" id="funnel-stage-screening">
+                <div class="stage-info">
+                  <span class="stage-name">Screening</span>
+                  <span class="stage-count" id="m-stage-screening">42</span>
+                </div>
+                <div class="stage-progress">
+                  <div class="stage-bar" id="m-bar-screening" style="width: 32%;"></div>
+                </div>
+              </div>
+
+              <!-- Stage: Interview -->
+              <div class="funnel-stage" id="funnel-stage-interview">
+                <div class="stage-info">
+                  <span class="stage-name">Interview</span>
+                  <span class="stage-count" id="m-stage-interview">18</span>
+                </div>
+                <div class="stage-progress">
+                  <div class="stage-bar" id="m-bar-interview" style="width: 13.8%;"></div>
+                </div>
+              </div>
+
+              <!-- Stage: Offered -->
+              <div class="funnel-stage" id="funnel-stage-offered">
+                <div class="stage-info">
+                  <span class="stage-name">Offered</span>
+                  <span class="stage-count" id="m-stage-offered">2</span>
+                </div>
+                <div class="stage-progress">
+                  <div class="stage-bar" id="m-bar-offered" style="width: 1.5%;"></div>
+                </div>
+              </div>
+
+              <!-- Stage: Hired -->
+              <div class="funnel-stage highlight-green" id="funnel-stage-hired">
+                <div class="stage-info">
+                  <span class="stage-name">Hired (Closed)</span>
+                  <span class="stage-count" id="m-stage-hired">3</span>
+                </div>
+                <div class="stage-progress">
+                  <div class="stage-bar" id="m-bar-hired" style="width: 2.3%;"></div>
+                </div>
+              </div>
+
+              <!-- Stage: Rejected -->
+              <div class="funnel-stage highlight-red" id="funnel-stage-rejected">
+                <div class="stage-info">
+                  <span class="stage-name">Rejected</span>
+                  <span class="stage-count" id="m-stage-rejected">0</span>
+                </div>
+                <div class="stage-progress">
+                  <div class="stage-bar" id="m-bar-rejected" style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <!-- Stage: Archived -->
+              <div class="funnel-stage highlight-grey" id="funnel-stage-archived">
+                <div class="stage-info">
+                  <span class="stage-name">Archived</span>
+                  <span class="stage-count" id="m-stage-archived">0</span>
+                </div>
+                <div class="stage-progress">
+                  <div class="stage-bar" id="m-bar-archived" style="width: 0%;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Embed data.js first then app.js -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+
+</html>
