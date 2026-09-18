@@ -1,20 +1,20 @@
 {
   "rewrites": [
     {
-      "source": "/api",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index"
-    },
-    {
       "source": "/auth",
-      "destination": "/api/index"
+      "destination": "/api/auth"
     },
     {
       "source": "/oauth/callback",
-      "destination": "/api/index"
+      "destination": "/api/callback"
+    },
+    {
+      "source": "/jobs",
+      "destination": "/api/jobs"
+    },
+    {
+      "source": "/status",
+      "destination": "/api/status"
     }
   ]
 }

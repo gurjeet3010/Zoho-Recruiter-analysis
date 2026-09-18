@@ -617,10 +617,10 @@ function setupEventListeners() {
 
   // Auth button click listeners to trigger Zoho OAuth flow redirect
   document.getElementById('auth-btn').addEventListener('click', () => {
-    window.location.href = '/auth';
+    window.location.href = '/api/auth';
   });
   document.getElementById('banner-auth-btn').addEventListener('click', () => {
-    window.location.href = '/auth';
+    window.location.href = '/api/auth';
   });
 }
 

@@ -808,8 +808,12 @@ class OAuthProxyHandler(http.server.BaseHTTPRequestHandler):
 class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     pass
 
-# Export handler for Vercel serverless runtime
+# Export handler and app for Vercel serverless runtime
 handler = OAuthProxyHandler
+try:
+    from api.index import app
+except Exception:
+    app = None
 
 # Module-level aliases for serverless API handlers
 get_mock_fallback_data = OAuthProxyHandler.get_mock_fallback_data
