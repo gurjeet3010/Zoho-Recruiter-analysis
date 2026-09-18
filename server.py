@@ -72,8 +72,8 @@ def load_config():
             pass
 
     config = {
-        "client_id": "1000.AEFPOQOFITGIRV56YXZAZBIQGPVYXO",
-        "client_secret": "0737689a45f29880a018b839cb642cd6217e9ae2dd",
+        "client_id": "",
+        "client_secret": "",
         "region": "in",
         "service": "recruit",
         "refresh_token": "",
