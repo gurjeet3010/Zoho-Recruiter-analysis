@@ -1,6 +1,6 @@
 import os
 import sys
-from flask import Flask, request
+from flask import Flask, request, send_from_directory
 
 # Ensure project root is in sys.path
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -14,7 +14,7 @@ from api.status import status
 
 app = Flask(__name__)
 
-# Register exact routes
+# Register exact API routes
 @app.route('/api/auth', methods=['GET'])
 @app.route('/auth', methods=['GET'])
 def route_auth():
@@ -35,25 +35,31 @@ def route_jobs():
 def route_status():
     return status()
 
-# Catch-all dispatcher to ensure no route ever 404s inside Flask
-@app.route('/', defaults={'path': ''}, methods=['GET', 'POST'])
+# Root route serves the visual dashboard HTML
+@app.route('/', methods=['GET'])
+def route_index():
+    return send_from_directory(BASE_DIR, 'index.html')
+
+# Catch-all route for static assets and API fallbacks
 @app.route('/<path:path>', methods=['GET', 'POST'])
 def catch_all(path=''):
-    target = (path or '').lower()
-    orig = (
-        request.headers.get('X-Forwarded-Uri') or
-        request.headers.get('X-Matched-Path') or
-        request.headers.get('X-Rewrite-Url') or
-        request.path or ''
-    ).lower()
-
-    combined = f"{target} {orig}"
-
-    if 'auth' in combined:
+    clean_path = (path or '').strip('/')
+    
+    # 1. Check if a static file exists at the project root (e.g. style.css, app.js, data.js, index.html)
+    static_file = os.path.join(BASE_DIR, clean_path)
+    if clean_path and os.path.isfile(static_file):
+        return send_from_directory(BASE_DIR, clean_path)
+    
+    # 2. Check if route matches known API endpoints
+    low_path = clean_path.lower()
+    if 'auth' in low_path:
         return auth()
-    elif 'callback' in combined:
+    elif 'callback' in low_path:
         return oauth_callback()
-    elif 'status' in combined:
+    elif 'status' in low_path:
         return status()
-    else:
+    elif 'job' in low_path:
         return jobs()
+    
+    # 3. Default fallback to the dashboard HTML
+    return send_from_directory(BASE_DIR, 'index.html')
