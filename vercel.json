@@ -2,19 +2,19 @@
   "rewrites": [
     {
       "source": "/api",
-      "destination": "/api/index.py"
+      "destination": "/api/index"
     },
     {
       "source": "/api/(.*)",
-      "destination": "/api/index.py"
+      "destination": "/api/index"
     },
     {
       "source": "/auth",
-      "destination": "/api/index.py"
+      "destination": "/api/index"
     },
     {
       "source": "/oauth/callback",
-      "destination": "/api/index.py"
+      "destination": "/api/index"
     }
   ]
 }

@@ -13,7 +13,25 @@ if BASE_DIR not in sys.path:
 
 import server
 
+# WSGI Middleware to restore the original path when Vercel rewrites to /api/index
+class VercelPathMiddleware:
+    def __init__(self, wsgi_app):
+        self.wsgi_app = wsgi_app
+
+    def __call__(self, environ, start_response):
+        orig_path = (
+            environ.get('HTTP_X_FORWARDED_URI') or
+            environ.get('HTTP_X_MATCHED_PATH') or
+            environ.get('HTTP_X_REWRITE_URL')
+        )
+        if orig_path:
+            # Strip query parameters if present
+            path_only = orig_path.split('?')[0]
+            environ['PATH_INFO'] = path_only
+        return self.wsgi_app(environ, start_response)
+
 app = Flask(__name__)
+app.wsgi_app = VercelPathMiddleware(app.wsgi_app)
 
 def serve_error(message):
     error_html = f"""
@@ -31,6 +49,7 @@ def serve_error(message):
     return Response(error_html, status=500, mimetype='text/html')
 
 @app.route('/api/status', methods=['GET'])
+@app.route('/status', methods=['GET'])
 def api_status():
     config = server.load_config()
     status = {
@@ -44,6 +63,7 @@ def api_status():
     return resp
 
 @app.route('/api/jobs', methods=['GET'])
+@app.route('/jobs', methods=['GET'])
 def api_jobs():
     config = server.load_config()
     refresh_token = config.get("refresh_token")
@@ -74,6 +94,7 @@ def api_jobs():
             return resp
 
 @app.route('/auth', methods=['GET'])
+@app.route('/api/auth', methods=['GET'])
 def auth():
     config = server.load_config()
     region = config.get("region", "in")
@@ -96,6 +117,7 @@ def auth():
     return redirect(auth_url)
 
 @app.route('/oauth/callback', methods=['GET'])
+@app.route('/api/oauth/callback', methods=['GET'])
 def oauth_callback():
     code = request.args.get('code')
     if not code:
@@ -163,3 +185,23 @@ def oauth_callback():
             return Response(success_html, mimetype='text/html')
     except Exception as e:
         return serve_error(f"Failed to communicate with Zoho authorization servers: {str(e)}")
+
+# Catch-all and fallback handler for direct /api/index invocations
+@app.route('/api/index', methods=['GET'])
+@app.route('/api', methods=['GET'])
+def api_root_dispatcher():
+    # If the request reached here directly, check original path or query params
+    orig_path = (
+        request.headers.get('X-Forwarded-Uri') or
+        request.headers.get('X-Matched-Path') or
+        request.headers.get('X-Rewrite-Url') or ''
+    )
+    if '/auth' in orig_path:
+        return auth()
+    elif '/oauth/callback' in orig_path:
+        return oauth_callback()
+    elif '/api/status' in orig_path or '/status' in orig_path:
+        return api_status()
+    elif '/api/jobs' in orig_path or '/jobs' in orig_path:
+        return api_jobs()
+    return api_jobs()
