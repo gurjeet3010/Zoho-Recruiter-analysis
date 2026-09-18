@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/auth",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/oauth/callback",
+      "destination": "/api/index.py"
+    }
+  ]
+}

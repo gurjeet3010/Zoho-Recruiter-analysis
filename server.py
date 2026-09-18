@@ -32,9 +32,15 @@ class ZohoCache:
     is_updating = False
     lock = threading.Lock()
 
+def get_config_file():
+    # If running on Vercel or serverless where filesystem is read-only, use /tmp
+    if os.environ.get("VERCEL") or not os.access(BASE_DIR, os.W_OK):
+        return os.path.join("/tmp", ".config.json")
+    return CONFIG_FILE
+
 # Load initial config
 def load_config():
-    # Load environment configuration (precedence for Render / .env variables)
+    # Load environment configuration (precedence for Vercel / Render / .env variables)
     env_config = {
         "client_id": os.environ.get("ZOHO_CLIENT_ID"),
         "client_secret": os.environ.get("ZOHO_CLIENT_SECRET"),
@@ -49,7 +55,16 @@ def load_config():
 
     # Load file configuration
     file_config = {}
-    if os.path.exists(CONFIG_FILE):
+    target_cfg = get_config_file()
+    # Try primary config path
+    if os.path.exists(target_cfg):
+        try:
+            with open(target_cfg, 'r') as f:
+                file_config = json.load(f)
+        except Exception:
+            pass
+    # Fallback to base dir config if target was /tmp and not found yet
+    if not file_config and os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE, 'r') as f:
                 file_config = json.load(f)
@@ -70,8 +85,12 @@ def load_config():
     return config
 
 def save_config(config):
-    with open(CONFIG_FILE, 'w') as f:
-        json.dump(config, f, indent=2)
+    target_cfg = get_config_file()
+    try:
+        with open(target_cfg, 'w') as f:
+            json.dump(config, f, indent=2)
+    except Exception as e:
+        sys.stderr.write(f"Warning: Could not save config file to {target_cfg}: {e}\n")
 
 class OAuthProxyHandler(http.server.BaseHTTPRequestHandler):
     
@@ -238,16 +257,26 @@ class OAuthProxyHandler(http.server.BaseHTTPRequestHandler):
         need_bg_update = False
         with ZohoCache.lock:
             if ZohoCache.data is None:
-                # Cache is empty, start background update and serve fallback immediately
-                self.update_zoho_cache(background=True)
+                # If running on Vercel or serverless, do synchronous fetch
+                if os.environ.get("VERCEL"):
+                    self.update_zoho_cache(background=False)
+                    if ZohoCache.data:
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps(ZohoCache.data).encode('utf-8'))
+                        return
+                else:
+                    self.update_zoho_cache(background=True)
                 self.serve_fallback_data("Cache is empty. Syncing with Zoho in background...", status="demo")
                 return
             elif time.time() - ZohoCache.last_updated > 300: # 5 minutes expiry
-                # Cache is expired, update in the background, serve stale data for now
+                # Cache is expired, update, serve stale data for now
                 need_bg_update = True
                 
         if need_bg_update:
-            self.update_zoho_cache(background=True)
+            self.update_zoho_cache(background=not bool(os.environ.get("VERCEL")))
             
         # Serve Cache
         with ZohoCache.lock:
@@ -580,7 +609,7 @@ class OAuthProxyHandler(http.server.BaseHTTPRequestHandler):
         sys.stderr.write(f"Serving fallback data: {message}\n")
         
         # Read standard data.js fallback mock data
-        fallback_file = "data.js"
+        fallback_file = os.path.join(BASE_DIR, "data.js")
         mock_jobs = []
         
         # Quick parse of data.js to get jobOpeningsData
@@ -771,6 +800,9 @@ class OAuthProxyHandler(http.server.BaseHTTPRequestHandler):
 # Run server
 class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     pass
+
+# Export handler for Vercel serverless runtime
+handler = OAuthProxyHandler
 
 if __name__ == '__main__':
     server = ThreadingHTTPServer(('0.0.0.0', PORT), OAuthProxyHandler)
