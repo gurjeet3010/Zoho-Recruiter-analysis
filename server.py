@@ -30,7 +30,7 @@ class ZohoCache:
     data = None
     last_updated = 0
     is_updating = False
-    lock = threading.Lock()
+    lock = threading.RLock()
 
 def get_config_file():
     # If running on Vercel or serverless where filesystem is read-only, use /tmp
@@ -289,7 +289,8 @@ class OAuthProxyHandler(http.server.BaseHTTPRequestHandler):
             else:
                 self.serve_fallback_data("Cache is empty. Showing demo data.", status="demo")
 
-    def get_valid_access_token(self, config):
+    @classmethod
+    def get_valid_access_token(cls, config):
         # Return current token if it has at least 30 seconds before expiration
         if config.get("access_token") and config.get("access_token_expires_at", 0) > time.time() + 30:
             return config["access_token"]
@@ -321,7 +322,8 @@ class OAuthProxyHandler(http.server.BaseHTTPRequestHandler):
             sys.stderr.write(f"Failed to refresh access token: {str(e)}\n")
         return None
 
-    def update_zoho_cache(self, background=True):
+    @classmethod
+    def update_zoho_cache(cls, background=True):
         def run_update():
             with ZohoCache.lock:
                 if ZohoCache.is_updating:
@@ -332,7 +334,7 @@ class OAuthProxyHandler(http.server.BaseHTTPRequestHandler):
                 sys.stdout.write("Refreshing Zoho cache...\n")
                 config = load_config()
                 region = config.get("region", "in")
-                access_token = self.get_valid_access_token(config)
+                access_token = cls.get_valid_access_token(config)
                 if not access_token:
                     sys.stderr.write("Cache update aborted: Invalid access token.\n")
                     return
@@ -605,7 +607,8 @@ class OAuthProxyHandler(http.server.BaseHTTPRequestHandler):
         else:
             run_update()
 
-    def serve_fallback_data(self, message, status="demo"):
+    @staticmethod
+    def get_mock_fallback_data(message="Showing demo data.", status="demo"):
         sys.stderr.write(f"Serving fallback data: {message}\n")
         
         # Read standard data.js fallback mock data
@@ -750,6 +753,10 @@ class OAuthProxyHandler(http.server.BaseHTTPRequestHandler):
             "jobs": mock_jobs
         }
 
+        return response_data
+
+    def serve_fallback_data(self, message, status="demo"):
+        response_data = self.get_mock_fallback_data(message, status)
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
@@ -803,6 +810,11 @@ class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
 
 # Export handler for Vercel serverless runtime
 handler = OAuthProxyHandler
+
+# Module-level aliases for serverless API handlers
+get_mock_fallback_data = OAuthProxyHandler.get_mock_fallback_data
+update_zoho_cache = OAuthProxyHandler.update_zoho_cache
+get_valid_access_token = OAuthProxyHandler.get_valid_access_token
 
 if __name__ == '__main__':
     server = ThreadingHTTPServer(('0.0.0.0', PORT), OAuthProxyHandler)
